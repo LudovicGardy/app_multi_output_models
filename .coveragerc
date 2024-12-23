@@ -1,0 +1,7 @@
+[run]
+omit =
+       config/*
+       */__init__.py
+       Calculate_*
+       _*
+       myfile.py
