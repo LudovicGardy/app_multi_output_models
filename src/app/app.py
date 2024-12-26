@@ -7,19 +7,23 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from sklearn.decomposition import PCA
 
-from src.app.utils.data import generate_data
+from src.app.utils.data import generate_data, Data
 from src.app.utils.model import train_model, predict_targets
 
 
 class App:
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, train_data: Data, test_data: Data):
         """
         Initializes the application with the given configuration path.
 
         Args:
             config_path (str): Path to the configuration file.
+            train_data (Data): Training data object.
+            test_data (Data): Test data object.
         """
         self.config_path = config_path
+        self.train_data = train_data
+        self.test_data = test_data
 
     def run(self):
         """
@@ -29,34 +33,32 @@ class App:
 
         # Generate and display data (if data not loaded in streamit)
         # if not st.session_state.get("training_data_generated", False):
-        X_train, Y_train, category_train = generate_data(n_samples=200)
         st.session_state["training_data_generated"] = True
 
-        model = train_model(X_train, Y_train)
+        model = train_model(self.train_data)
 
         st.write("# 1. Training data")
         st.write("## 1.1. Training data overview")
-        self.display_data_table(X_train, Y_train, category_train, "Training")
+        self.display_data_table(self.train_data.X, self.train_data.Y, self.train_data.category, "Training")
 
         st.write("## 1.2. Descriptive statistics")
         st.write("### Clustering data by category")
-        self.display_clusters(X_train, category_train)
+        self.display_clusters(self.train_data.X, self.train_data.category)
 
         # Show pairplots
         st.write("### Pairplots of the data")
-        self.display_pairplots(X_train, category_train)
+        self.display_pairplots(self.train_data.X, self.train_data.category)
 
         st.write("### Summary of targets")
-        self.display_target_summary(Y_train)
+        self.display_target_summary(self.train_data.Y)
 
         st.write("## 1.3. Train model and get results")
         st.write("### Performance on training data")
-        self.display_training_performance(model, X_train, Y_train)
+        self.display_training_performance(model, self.train_data.X, self.train_data.Y)
 
         st.write("# 2. Predictions on new data")
-        X_new, Y_new, category_new = generate_data(n_samples=10)
-        self.display_data_table(X_new, Y_new, category_new, "New")
-        self.handle_predictions(model, X_new)
+        self.display_data_table(self.test_data.X, self.test_data.Y, self.test_data.category, "New")
+        self.handle_predictions(model, self.test_data)
 
     @staticmethod
     def display_pairplots(X_train, category):
@@ -164,14 +166,15 @@ class App:
         st.write("Average MSE:", mse_train.mean())
 
     @staticmethod
-    def handle_predictions(model, X_new):
+    def handle_predictions(model, data: Data):
         """
         Handles predictions on new data.
 
         Args:
             model (RandomForestRegressor): Trained regression model.
+            data (Data): New data object.
         """
         if st.button("Predict targets"):
-            predictions = predict_targets(model, X_new)
+            predictions = predict_targets(model, data)
             st.write("Prediction results:")
             st.dataframe(pd.DataFrame(predictions, columns=[f"Target_{i+1}" for i in range(predictions.shape[1])]))

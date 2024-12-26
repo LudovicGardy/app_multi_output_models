@@ -1,7 +1,21 @@
 import numpy as np
 import pandas as pd
+from typing import List, Tuple
+
+from dataclasses import dataclass, field
 from sklearn.datasets import make_regression
-from typing import Tuple
+
+@dataclass
+class Data:
+    X: np.ndarray = field(default_factory=lambda: np.array([]))
+    Y: np.ndarray = field(default_factory=lambda: np.array([]))
+    category: List[str] = field(default_factory=list)
+
+    @staticmethod
+    def generate(n_samples: int):
+        X, Y, category = generate_data(n_samples)
+        return Data(X, Y, category)
+
 
 def generate_data(n_samples, categories=None) -> Tuple[np.ndarray, np.ndarray, list]:
     """
