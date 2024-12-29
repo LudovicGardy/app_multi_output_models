@@ -1,50 +1,26 @@
 import numpy as np
 import pandas as pd
-from typing import List, Tuple
+from typing import List
 
 from dataclasses import dataclass, field
-from sklearn.datasets import make_regression
 
 @dataclass
 class Data:
     X: np.ndarray = field(default_factory=lambda: np.array([]))
     Y: np.ndarray = field(default_factory=lambda: np.array([]))
     category: List[str] = field(default_factory=list)
+    category_columns: List[str] = field(default_factory=list)
 
     @staticmethod
-    def generate(n_samples: int):
-        X, Y, category = generate_data(n_samples)
-        return Data(X, Y, category)
+    def load_from_file(file):
+        df = pd.read_csv(file, sep=",")
 
+        target_columns = [col for col in df.columns if 'target' in col.lower()]
+        feature_columns = [col for col in df.columns if col not in target_columns + ['Category']]
 
-def generate_data(n_samples, categories=None) -> Tuple[np.ndarray, np.ndarray, list]:
-    """
-    Generates training or prediction data with explicit categories for encoding.
+        X = df[feature_columns].values
+        Y = df[target_columns].values
+        category_columns = ['Category']
+        category = df['Category'].astype(str).tolist()
 
-    Args:
-        n_samples (int): Number of samples to generate.
-        categories (list, optional): List of all possible categories for encoding.
-
-    Returns:
-        Tuple[np.ndarray, np.ndarray, list]: Input data, target data, and categories.
-    """
-    X_continuous, Y_train = make_regression(n_samples=n_samples, n_features=10, n_targets=5, noise=0.1, random_state=42)
-    category = np.random.choice(categories if categories else ["Level 1", "Level 2", "Level 3"], size=n_samples)
-
-    # Add bias
-    bias = {
-        "Level 1": 2,
-        "Level 2": -2,
-        "Level 3": 0
-    }
-    category_bias = np.array([bias[cat] for cat in category])
-    X_continuous[:, 0] += category_bias
-
-    # Encode categorical feature with fixed columns
-    if not categories:
-        categories = ["Level 1", "Level 2", "Level 3"]
-
-    category_encoded = pd.get_dummies(category, drop_first=False).reindex(columns=categories, fill_value=0).values
-    X_train_encoded = np.hstack((X_continuous, category_encoded))
-
-    return X_train_encoded, Y_train, category
+        return Data(X, Y, category, category_columns=category_columns)

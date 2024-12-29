@@ -18,18 +18,26 @@ if __name__ == "__main__":
         st.session_state["train_data"] = None
         st.session_state["test_data"] = None
 
-    # Generate data
-    if not st.session_state["training_data_generated"]:
-        train_data = Data.generate(n_samples=200)
-        test_data = Data.generate(n_samples=20)
+    # User option to upload files or generate data
+    data_option = st.radio("Choose data source:", ("Upload files", "Generate data"))
 
+    train_file = st.file_uploader("Upload training data file", type=["csv"])
+    test_file = st.file_uploader("Upload validation data file", type=["csv"])
+
+    if train_file and test_file:
+        train_data = Data.load_from_file(train_file)
+        test_data = Data.load_from_file(test_file)
         st.session_state["training_data_generated"] = True
         st.session_state["train_data"] = train_data
         st.session_state["test_data"] = test_data
-    else:
-        train_data = st.session_state["train_data"]
-        test_data = st.session_state["test_data"]
+
+    # Select clustering column
+    if st.session_state["training_data_generated"]:
+        categorical_columns = train_data.category_columns
+        clustering_column = st.selectbox("Select clustering column:", categorical_columns)
+        st.session_state["clustering_column"] = clustering_column
 
     # Run the application with training data
-    app = App(config, train_data, test_data)
-    app.run()
+    if st.session_state["training_data_generated"]:
+        app = App(config, train_data, test_data)
+        app.run()

@@ -1,5 +1,4 @@
 import streamlit as st
-import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -7,8 +6,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from sklearn.decomposition import PCA
 
-from src.app.utils.data import generate_data, Data
-from src.app.utils.model import train_model, predict_targets
+from src.app.utils.data import Data
+from src.app.utils.model import train_model, predict_targets, encode_data, CategoryEncoder
 
 
 class App:
@@ -35,8 +34,6 @@ class App:
         # if not st.session_state.get("training_data_generated", False):
         st.session_state["training_data_generated"] = True
 
-        model = train_model(self.train_data)
-
         st.write("# 1. Training data")
         st.write("## 1.1. Training data overview")
         self.display_data_table(self.train_data.X, self.train_data.Y, self.train_data.category, "Training")
@@ -47,18 +44,26 @@ class App:
 
         # Show pairplots
         st.write("### Pairplots of the data")
-        self.display_pairplots(self.train_data.X, self.train_data.category)
+        # self.display_pairplots(self.train_data.X, self.train_data.category)
 
         st.write("### Summary of targets")
         self.display_target_summary(self.train_data.Y)
 
         st.write("## 1.3. Train model and get results")
         st.write("### Performance on training data")
-        self.display_training_performance(model, self.train_data.X, self.train_data.Y)
+        
+        # Fit encoder and encode data
+        encoder = CategoryEncoder()
+        encoder.fit(self.train_data.X, self.train_data.category)
+        X_encoded = encode_data(self.train_data, encoder)
+        
+        # Train model
+        model = train_model(X_encoded, self.train_data.Y)
+        self.display_training_performance(model, encoder, self.train_data)
 
         st.write("# 2. Predictions on new data")
         self.display_data_table(self.test_data.X, self.test_data.Y, self.test_data.category, "New")
-        self.handle_predictions(model, self.test_data)
+        self.handle_predictions(model, encoder, self.test_data)
 
     @staticmethod
     def display_pairplots(X_train, category):
@@ -131,12 +136,12 @@ class App:
             Y_train (ndarray): Training target data.
             category (list): List of categorical labels.
         """
-        # Extract feature names (excluding encoded category columns)
-        feature_names = [f"Feature_{i+1}" for i in range(X_train.shape[1] - len(np.unique(category)))]
+        # Extract feature names
+        feature_names = [f"Feature_{i+1}" for i in range(X_train.shape[1])]
         target_names = [f"Target_{i+1}" for i in range(Y_train.shape[1])]
 
         # Create DataFrame for features
-        feature_df = pd.DataFrame(X_train[:, :-len(np.unique(category))], columns=feature_names)
+        feature_df = pd.DataFrame(X_train, columns=feature_names)
 
         # Add category and targets
         feature_df["Category"] = category
@@ -150,23 +155,41 @@ class App:
         st.dataframe(combined_df)
 
     @staticmethod
-    def display_training_performance(model, X_train, Y_train):
+    def display_training_performance(model, encoder, data: Data):
         """
         Displays the training performance metrics.
 
         Args:
             model (RandomForestRegressor): Trained regression model.
-            X_train (ndarray): Training input data.
-            Y_train (ndarray): Training target data.
+            encoder (CategoryEncoder): Fitted CategoryEncoder.
+            data (Data): Training data object.
         """
-        Y_train_pred = model.predict(X_train)
-        mse_train = mean_squared_error(Y_train, Y_train_pred, multioutput='raw_values')
-        mse_df = pd.DataFrame(mse_train, columns=["MSE"], index=[f"Target_{i+1}" for i in range(Y_train.shape[1])])
+        # Transformation des données d'entrée avec l'encodeur
+        X_encoded = encode_data(data, encoder)
+
+        # Vérification des dimensions
+        if X_encoded.shape[0] != data.Y.shape[0]:
+            raise ValueError("Le nombre de lignes dans X_train et Y_train ne correspond pas.")
+
+        # Prédictions sur l'ensemble d'entraînement
+        Y_train_pred = model.predict(X_encoded)
+
+        # Calcul de l'erreur quadratique moyenne (MSE) par cible
+        mse_train = mean_squared_error(data.Y, Y_train_pred, multioutput='raw_values')
+
+        # Construction d'un DataFrame pour un affichage clair
+        mse_df = pd.DataFrame(
+            {"MSE": mse_train},
+            index=[f"Target_{i+1}" for i in range(data.Y.shape[1])]
+        )
+
+        # Affichage dans Streamlit
+        st.write("### Performance sur l'ensemble d'entraînement")
         st.table(mse_df)
-        st.write("Average MSE:", mse_train.mean())
+        st.write("MSE moyenne :", mse_train.mean())
 
     @staticmethod
-    def handle_predictions(model, data: Data):
+    def handle_predictions(model, encoder, data: Data):
         """
         Handles predictions on new data.
 
@@ -175,6 +198,6 @@ class App:
             data (Data): New data object.
         """
         if st.button("Predict targets"):
-            predictions = predict_targets(model, data)
+            predictions = predict_targets(model, encoder, data)
             st.write("Prediction results:")
             st.dataframe(pd.DataFrame(predictions, columns=[f"Target_{i+1}" for i in range(predictions.shape[1])]))
