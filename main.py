@@ -18,11 +18,8 @@ if __name__ == "__main__":
         st.session_state["train_data"] = None
         st.session_state["test_data"] = None
 
-    # User option to upload files or generate data
-    data_option = st.radio("Choose data source:", ("Upload files", "Generate data"))
-
-    train_file = st.file_uploader("Upload training data file", type=["csv"])
-    test_file = st.file_uploader("Upload validation data file", type=["csv"])
+    train_file = st.file_uploader("Upload `training` data file", type=["csv"])
+    test_file = st.file_uploader("Upload `test` data file", type=["csv"])
 
     if train_file and test_file:
         train_data = Data.load_from_file(train_file)
