@@ -7,7 +7,8 @@ from sklearn.metrics import mean_squared_error
 from sklearn.decomposition import PCA
 
 from src.app.utils.data import Data
-from src.app.utils.model import train_model, predict_targets, encode_data, CategoryEncoder
+from src.app.utils.model import train_model, predict_targets
+from src.app.utils.encoder import CategoryEncoder, encode_data
 
 
 class App:
