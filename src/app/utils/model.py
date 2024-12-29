@@ -55,7 +55,7 @@ def encode_data(data: Data, encoder: CategoryEncoder) -> np.ndarray:
     Returns:
         np.ndarray: Encoded feature matrix.
     """
-    return encoder.transform(data.X, data.category)
+    return encoder.transform(data.X, data.categories)
 
 def train_model(X_encoded: np.ndarray, Y: np.ndarray) -> RandomForestRegressor:
     """

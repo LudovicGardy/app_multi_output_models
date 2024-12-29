@@ -1,26 +1,45 @@
 import numpy as np
 import pandas as pd
-from typing import List
+from typing import List, Dict
 
 from dataclasses import dataclass, field
+
 
 @dataclass
 class Data:
     X: np.ndarray = field(default_factory=lambda: np.array([]))
     Y: np.ndarray = field(default_factory=lambda: np.array([]))
-    category: List[str] = field(default_factory=list)
+    categories: Dict[str, List[str]] = field(default_factory=dict)  # Dictionnaire des catégories et leurs valeurs
     category_columns: List[str] = field(default_factory=list)
 
     @staticmethod
     def load_from_file(file):
+        """
+        Load data from a CSV file and automatically detect categorical columns.
+        
+        Args:
+            file (str): Path to the CSV file.
+            
+        Returns:
+            Data: An instance of the Data class containing the data.
+        """
+        # Load the CSV file
         df = pd.read_csv(file, sep=",")
 
-        target_columns = [col for col in df.columns if 'target' in col.lower()]
-        feature_columns = [col for col in df.columns if col not in target_columns + ['Category']]
+        # Identify categorical columns
+        category_columns = df.select_dtypes(include=["object", "category"]).columns.tolist()
 
+        # Convert categorical columns to a list of values for each category
+        categories = {col: df[col].astype(str).tolist() for col in category_columns}
+
+        # Identify target columns (those containing "target" in their name, case insensitive)
+        target_columns = [col for col in df.columns if 'target' in col.lower()]
+
+        # Identify feature columns
+        feature_columns = [col for col in df.columns if col not in target_columns + category_columns]
+
+        # Extract feature and target values
         X = df[feature_columns].values
         Y = df[target_columns].values
-        category_columns = ['Category']
-        category = df['Category'].astype(str).tolist()
 
-        return Data(X, Y, category, category_columns=category_columns)
+        return Data(X, Y, categories, category_columns=category_columns)

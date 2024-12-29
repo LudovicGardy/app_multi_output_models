@@ -36,15 +36,16 @@ class App:
 
         st.write("# 1. Training data")
         st.write("## 1.1. Training data overview")
-        self.display_data_table(self.train_data.X, self.train_data.Y, self.train_data.category, "Training")
+        self.display_data_table(self.train_data.X, self.train_data.Y, self.train_data.categories, "Training")
 
         st.write("## 1.2. Descriptive statistics")
         st.write("### Clustering data by category")
-        self.display_clusters(self.train_data.X, self.train_data.category)
+        clustering_category = st.session_state["clustering_column"]
+        self.display_clusters(self.train_data.X, self.train_data.categories[clustering_category])
 
         # Show pairplots
         st.write("### Pairplots of the data")
-        # self.display_pairplots(self.train_data.X, self.train_data.category)
+        # self.display_pairplots(self.train_data.X, self.train_data.categories)
 
         st.write("### Summary of targets")
         self.display_target_summary(self.train_data.Y)
@@ -54,7 +55,7 @@ class App:
         
         # Fit encoder and encode data
         encoder = CategoryEncoder()
-        encoder.fit(self.train_data.X, self.train_data.category)
+        encoder.fit(self.train_data.X, self.train_data.categories)
         X_encoded = encode_data(self.train_data, encoder)
         
         # Train model
@@ -62,7 +63,7 @@ class App:
         self.display_training_performance(model, encoder, self.train_data)
 
         st.write("# 2. Predictions on new data")
-        self.display_data_table(self.test_data.X, self.test_data.Y, self.test_data.category, "New")
+        self.display_data_table(self.test_data.X, self.test_data.Y, self.test_data.categories, "New")
         self.handle_predictions(model, encoder, self.test_data)
 
     @staticmethod
@@ -127,30 +128,34 @@ class App:
         st.table(targets_summary)
 
     @staticmethod
-    def display_data_table(X_train, Y_train, category, table_name=""):
+    def display_data_table(X_train, Y_train, categories, table_name=""):
         """
-        Displays a combined table of features, targets, and categories.
+        Affiche une table combinée des features, des cibles et des catégories.
 
         Args:
-            X_train (ndarray): Training data (features and encoded categories).
-            Y_train (ndarray): Training target data.
-            category (list): List of categorical labels.
+            X_train (ndarray): Données d'entraînement (features).
+            Y_train (ndarray): Données cibles d'entraînement.
+            categories (dict): Dictionnaire des colonnes catégorielles et leurs valeurs.
+            table_name (str): Nom de la table pour l'affichage (optionnel).
         """
-        # Extract feature names
+        # Extraire les noms des colonnes des features et des targets
         feature_names = [f"Feature_{i+1}" for i in range(X_train.shape[1])]
         target_names = [f"Target_{i+1}" for i in range(Y_train.shape[1])]
 
-        # Create DataFrame for features
+        # Créer un DataFrame pour les features
         feature_df = pd.DataFrame(X_train, columns=feature_names)
 
-        # Add category and targets
-        feature_df["Category"] = category
+        # Ajouter les colonnes catégorielles
+        for category_col, category_values in categories.items():
+            feature_df[category_col] = category_values
+
+        # Créer un DataFrame pour les targets
         target_df = pd.DataFrame(Y_train, columns=target_names)
 
-        # Combine features and targets
+        # Combiner features, catégories et targets
         combined_df = pd.concat([feature_df, target_df], axis=1)
 
-        # Display in Streamlit
+        # Afficher dans Streamlit
         st.write(f"### {table_name} Data Table")
         st.dataframe(combined_df)
 
