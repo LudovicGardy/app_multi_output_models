@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 class Data:
     X: np.ndarray = field(default_factory=lambda: np.array([]))
     Y: np.ndarray = field(default_factory=lambda: np.array([]))
-    categories: Dict[str, List[str]] = field(default_factory=dict)  # Dictionnaire des catégories et leurs valeurs
+    categories: Dict[str, List[str]] = field(default_factory=dict)
     category_columns: List[str] = field(default_factory=list)
 
     @staticmethod
