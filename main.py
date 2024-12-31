@@ -17,24 +17,43 @@ if __name__ == "__main__":
         st.session_state["training_data_generated"] = False
         st.session_state["train_data"] = None
         st.session_state["test_data"] = None
+        st.session_state["page"] = "Home"
 
-    train_file = st.file_uploader("Upload `training` data file", type=["csv"])
-    test_file = st.file_uploader("Upload `test` data file", type=["csv"])
+    # Create pages
+    st.sidebar.title("Multi-Output Regression Application with Clusters")
+    home_button = st.sidebar.button("🏠 Load Data", key="home_button", use_container_width=True)
+    analyses_button = st.sidebar.button("📊 Calcul & Show Results", key="analyses_button", use_container_width=True)
 
-    if train_file and test_file:
-        train_data = Data.load_from_file(train_file)
-        test_data = Data.load_from_file(test_file)
-        st.session_state["training_data_generated"] = True
-        st.session_state["train_data"] = train_data
-        st.session_state["test_data"] = test_data
+    if home_button:
+        st.session_state["page"] = "Home"
+    elif analyses_button:
+        st.session_state["page"] = "Analyses"
 
-    # Select clustering column
-    if st.session_state["training_data_generated"]:
-        categorical_columns = train_data.category_columns
-        clustering_column = st.selectbox("Select clustering column:", categorical_columns)
-        st.session_state["clustering_column"] = clustering_column
+    page = st.session_state["page"]
 
-    # Run the application with training data
-    if st.session_state["training_data_generated"]:
-        app = App(config, train_data, test_data)
-        app.run()
+    if page == "Home":
+        st.title("Home")
+        train_file = st.file_uploader("Upload `training` data file", type=["csv"])
+        test_file = st.file_uploader("Upload `test` data file", type=["csv"])
+
+        if train_file and test_file:
+            train_data = Data.load_from_file(train_file)
+            test_data = Data.load_from_file(test_file)
+            st.session_state["training_data_generated"] = True
+            st.session_state["train_data"] = train_data
+            st.session_state["test_data"] = test_data
+
+        # Select clustering column
+        if st.session_state["training_data_generated"]:
+            categorical_columns = st.session_state["train_data"].category_columns
+            clustering_column = st.selectbox("Select clustering column:", categorical_columns)
+            st.session_state["clustering_column"] = clustering_column
+
+    elif page == "Analyses":
+        st.title("Analyses")
+        # Run the application with training data
+        if st.session_state["training_data_generated"]:
+            app = App(config, st.session_state["train_data"], st.session_state["test_data"])
+            app.run()
+        else:
+            st.write("Please upload the training and test data on the Home page.")

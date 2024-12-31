@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import seaborn as sns
+import plotly.express as px
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 from sklearn.metrics import mean_squared_error
 from sklearn.decomposition import PCA
@@ -29,46 +32,61 @@ class App:
         """
         Runs the Streamlit application.
         """
-        st.title("Multi-Output Regression Application with Clusters")
-
         # Generate and display data (if data not loaded in streamit)
         # if not st.session_state.get("training_data_generated", False):
         st.session_state["training_data_generated"] = True
 
-        st.write("# 1. Training data")
-        st.write("## 1.1. Training data overview")
-        self.display_data_table(self.train_data.X, self.train_data.Y, self.train_data.categories, "Training")
+        tab1, tab2, tab3 = st.tabs(["1️⃣ Training Data", "2️⃣ Model Training", "3️⃣ Predictions (New Data)"])
 
-        st.write("## 1.2. Descriptive statistics")
-        st.write("### Clustering data by category")
-        clustering_category = st.session_state["clustering_column"]
-        self.display_clusters(self.train_data.X, self.train_data.categories[clustering_category])
+        with tab1:
+            with st.expander("Show Training Data Details"):
+                st.write("### Training Data")
+                st.write("Number of features:", self.train_data.X.shape[1])
+                st.write("Number of targets:", self.train_data.Y.shape[1])
+                st.write("Number of samples:", self.train_data.X.shape[0])
 
-        # Show pairplots
-        st.write("### Pairplots of the data")
-        # self.display_pairplots(self.train_data.X, self.train_data.categories)
+            with st.expander("Show Training Data Table"):
+                self.display_data_table(self.train_data.X, self.train_data.Y, self.train_data.categories, "Training")
 
-        st.write("### Summary of targets")
-        self.display_target_summary(self.train_data.Y)
+            with st.expander("Show Clusters"):
+                clustering_category = st.session_state["clustering_column"]
+                self.display_clusters(self.train_data.X, self.train_data.categories[clustering_category])
 
-        st.write("## 1.3. Train model and get results")
-        st.write("### Performance on training data")
-        
-        # Fit encoder and encode data
-        encoder = CategoryEncoder()
-        encoder.fit(self.train_data.X, self.train_data.categories)
-        X_encoded = encode_data(self.train_data, encoder)
-        
-        # Train model
-        model = train_model(X_encoded, self.train_data.Y)
-        self.display_training_performance(model, encoder, self.train_data)
+            with st.expander("Show Pairplots"):
+                st.write("### Features")
+                self.display_pairplots(self.train_data.X, self.train_data.categories[clustering_category], "Feature")
+                st.write("### Targets")
+                self.display_pairplots(self.train_data.Y, self.train_data.categories[clustering_category], "Target")
 
-        st.write("# 2. Predictions on new data")
-        self.display_data_table(self.test_data.X, self.test_data.Y, self.test_data.categories, "New")
-        self.handle_predictions(model, encoder, self.test_data)
+            with st.expander("Show Targets Summary"):
+                self.display_target_summary(self.train_data.Y)
+
+        with tab2:
+            st.write("## Train model and get results")
+            
+            # Fit encoder and encode data
+            encoder = CategoryEncoder()
+            encoder.fit(self.train_data.X, self.train_data.categories)
+            X_encoded = encode_data(self.train_data, encoder)
+            
+            # Train model
+            model = train_model(X_encoded, self.train_data.Y)
+            self.display_training_performance(model, encoder, self.train_data)
+
+        with tab3:
+            st.write("# Predictions on new data")
+            with st.expander("Show Test Data Details"):
+                st.write("### Test Data")
+                st.write("Number of features:", self.test_data.X.shape[1])
+                st.write("Number of targets:", self.test_data.Y.shape[1])
+                st.write("Number of samples:", self.test_data.X.shape[0])
+
+            with st.expander("Show Test Data Table"):
+                self.display_data_table(self.test_data.X, self.test_data.Y, self.test_data.categories, "New")
+            self.handle_predictions(model, encoder, self.test_data)
 
     @staticmethod
-    def display_pairplots(X_train, category):
+    def display_pairplots(data: np.ndarray, category: list, parameters: str):
         """
         Displays pairplots of the training data.
 
@@ -76,16 +94,20 @@ class App:
             X_train (ndarray): Training data.
             category (list): List of categorical labels.
         """
-
-        data = pd.DataFrame(X_train[:, :-3], columns=[f"Feature_{i+1}" for i in range(10)])
+        # Dynamically determine the number of features
+        num_parameters = data.shape[1]
+        
+        # Generate column names based on the actual number of features
+        data = pd.DataFrame(data, columns=[f"{parameters}_{i+1}" for i in range(num_parameters)])
         data["Category"] = category
+
         sns.pairplot(data, hue="Category", palette="Set2")
         st.pyplot(plt)
 
     @staticmethod
     def display_clusters(X_train, category):
         """
-        Displays the PCA visualization of clusters.
+        Displays the PCA visualization of clusters using Plotly.
 
         Args:
             X_train (ndarray): Training data.
@@ -99,15 +121,20 @@ class App:
             "Category": category
         })
 
-        plt.figure(figsize=(10, 6))
-        sns.scatterplot(data=cluster_df, x="PCA1", y="PCA2", hue="Category", palette="Set2", s=100)
-        plt.title("PCA Visualization of Data by Category")
-        st.pyplot(plt)
+        fig = px.scatter(
+            cluster_df,
+            x="PCA1",
+            y="PCA2",
+            color="Category",
+            title="PCA Visualization of Data by Category",
+            labels={"PCA1": "Principal Component 1", "PCA2": "Principal Component 2"},
+        )
+        st.plotly_chart(fig)
 
     @staticmethod
     def display_target_summary(Y_train):
         """
-        Displays a summary of the target variables.
+        Displays a summary of the target variables using Plotly.
 
         Args:
             Y_train (ndarray): Training target data.
@@ -120,13 +147,18 @@ class App:
             "Standard Deviation": stds
         })
 
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.bar(targets_summary["Target"], targets_summary["Mean"], yerr=targets_summary["Standard Deviation"], capsize=5)
-        ax.set_title("Mean and Standard Deviation of Targets")
-        st.pyplot(fig)
+        fig = px.bar(
+            targets_summary,
+            x="Target",
+            y="Mean",
+            error_y="Standard Deviation",
+            title="Mean and Standard Deviation of Targets",
+            template="plotly_white",
+            labels={"Mean": "Mean Value"},
+        )
+        st.plotly_chart(fig)
 
-        st.write("Targets Table:")
-        st.table(targets_summary)
+        st.dataframe(targets_summary, width=1000)
 
     @staticmethod
     def display_data_table(X_train, Y_train, categories, table_name=""):
@@ -190,9 +222,9 @@ class App:
         )
 
         # Affichage dans Streamlit
-        st.write("### Performance sur l'ensemble d'entraînement")
+        st.write("### Performance on training data")
         st.table(mse_df)
-        st.write("MSE moyenne :", mse_train.mean())
+        st.write("MSE mean:", mse_train.mean())
 
     @staticmethod
     def handle_predictions(model, encoder, data: Data):
@@ -205,5 +237,5 @@ class App:
         """
         if st.button("Predict targets"):
             predictions = predict_targets(model, encoder, data)
-            st.write("Prediction results:")
-            st.dataframe(pd.DataFrame(predictions, columns=[f"Target_{i+1}" for i in range(predictions.shape[1])]))
+            st.write("### Prediction results")
+            st.dataframe(pd.DataFrame(predictions, columns=[f"Target_{i+1}" for i in range(predictions.shape[1])]), width=1000)
