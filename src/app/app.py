@@ -33,8 +33,8 @@ class App:
         Runs the Streamlit application.
         """
         # Generate and display data (if data not loaded in streamit)
-        # if not st.session_state.get("training_data_generated", False):
-        st.session_state["training_data_generated"] = True
+        # if not st.session_state.get("data_loaded", False):
+        st.session_state["data_loaded"] = True
 
         tab1, tab2, tab3 = st.tabs(["1️⃣ Training Data", "2️⃣ Model Training", "3️⃣ Predictions (New Data)"])
 
