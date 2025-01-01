@@ -4,7 +4,7 @@ import numpy as np
 import seaborn as sns
 import plotly.express as px
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
+from typing import Optional
 
 from sklearn.metrics import mean_squared_error
 from sklearn.decomposition import PCA
@@ -36,7 +36,7 @@ class App:
         # if not st.session_state.get("data_loaded", False):
         st.session_state["data_loaded"] = True
 
-        tab1, tab2, tab3 = st.tabs(["1️⃣ Training Data", "2️⃣ Model Training", "3️⃣ Predictions (New Data)"])
+        tab1, tab2, tab3 = st.tabs(["1️⃣ Training Data", "2️⃣ Model Training", "3️⃣ Predictions On New Data"])
 
         with tab1:
             with st.expander("Show Training Data Details"):
@@ -46,7 +46,7 @@ class App:
                 st.write("Number of samples:", self.train_data.X.shape[0])
 
             with st.expander("Show Training Data Table"):
-                self.display_data_table(self.train_data.X, self.train_data.Y, self.train_data.categories, "Training")
+                train_df = self.display_data_table(self.train_data.X, self.train_data.Y, self.train_data.categories, "Training")
 
             with st.expander("Show Clusters"):
                 clustering_category = st.session_state["clustering_column"]
@@ -82,8 +82,41 @@ class App:
                 st.write("Number of samples:", self.test_data.X.shape[0])
 
             with st.expander("Show Test Data Table"):
-                self.display_data_table(self.test_data.X, self.test_data.Y, self.test_data.categories, "New")
-            self.handle_predictions(model, encoder, self.test_data)
+                test_df = self.display_data_table(self.test_data.X, self.test_data.Y, self.test_data.categories, "New")
+            predictions_df = self.handle_predictions(model, encoder, self.test_data)
+
+            if predictions_df is not None:
+                st.write("### Differences between real and predicted values")
+                self.create_difference_df(test_df, predictions_df)
+
+    def create_difference_df(self, test_df, predictions_df):
+        """
+        Create a DataFrame that contains the difference between test_df and predictions_df
+        for each common column and row, and display the resulting DataFrame and plot.
+
+        Parameters:
+        test_df (pd.DataFrame): The test DataFrame.
+        predictions_df (pd.DataFrame): The predictions DataFrame.
+
+        Returns:
+        pd.DataFrame: The DataFrame containing the differences.
+        """
+        # Ensure both DataFrames have the same columns
+        common_columns = test_df.columns.intersection(predictions_df.columns)
+
+        # Calculate the difference
+        difference_df = test_df[common_columns] - predictions_df[common_columns]
+
+        # Display the resulting DataFrame
+        st.dataframe(difference_df, width=1000)
+
+        # Plot the differences using Plotly
+        fig = px.box(difference_df, title="Differences between Test and Predicted Values")
+        fig.update_layout(yaxis_title="Difference")
+        st.plotly_chart(fig)
+
+        return difference_df
+
 
     @staticmethod
     def display_pairplots(data: np.ndarray, category: list, parameters: str):
@@ -161,7 +194,7 @@ class App:
         st.dataframe(targets_summary, width=1000)
 
     @staticmethod
-    def display_data_table(X_train, Y_train, categories, table_name=""):
+    def display_data_table(X_train, Y_train, categories, table_name="") -> pd.DataFrame:
         """
         Affiche une table combinée des features, des cibles et des catégories.
 
@@ -191,6 +224,8 @@ class App:
         # Afficher dans Streamlit
         st.write(f"### {table_name} Data Table")
         st.dataframe(combined_df)
+
+        return combined_df
 
     @staticmethod
     def display_training_performance(model, encoder, data: Data):
@@ -227,7 +262,7 @@ class App:
         st.write("MSE mean:", mse_train.mean())
 
     @staticmethod
-    def handle_predictions(model, encoder, data: Data):
+    def handle_predictions(model, encoder, data: Data) -> Optional[pd.DataFrame]:
         """
         Handles predictions on new data.
 
@@ -237,5 +272,9 @@ class App:
         """
         if st.button("Predict targets"):
             predictions = predict_targets(model, encoder, data)
-            st.write("### Prediction results")
-            st.dataframe(pd.DataFrame(predictions, columns=[f"Target_{i+1}" for i in range(predictions.shape[1])]), width=1000)
+            st.write("### Prediction Results")
+            predictions_df = pd.DataFrame(predictions, columns=[f"Target_{i+1}" for i in range(predictions.shape[1])])
+            st.dataframe(predictions_df, width=1000)
+            return predictions_df
+        else:
+            return None

@@ -21,7 +21,7 @@ if __name__ == "__main__":
         st.session_state["page"] = "Home"
 
     # Create pages
-    st.sidebar.title("Multi-Output Regression Application with Clusters")
+    st.sidebar.title("Multi-Output Regression")
     home_button = st.sidebar.button("🏠 Home", key="home_button", use_container_width=True)
     analyses_button = st.sidebar.button("📊 Results", key="analyses_button", use_container_width=True)
 
