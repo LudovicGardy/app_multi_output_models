@@ -216,8 +216,8 @@ class App:
             if category_col not in feature_df.columns:
                 feature_df[category_col] = category_values
 
-        # Rename target columns to avoid duplicates
-        target_columns = st.session_state["train_data"].target_columns
+        # Ensure the number of target columns matches the shape of Y_train
+        target_columns = st.session_state["train_data"].target_columns[:Y_train.shape[1]]
         target_df = pd.DataFrame(Y_train, columns=target_columns)
         combined_df = pd.concat([feature_df, target_df], axis=1)
 

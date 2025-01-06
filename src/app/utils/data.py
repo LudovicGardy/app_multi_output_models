@@ -39,6 +39,10 @@ class Data:
         # Convert categorical columns to a list of values for each category
         categories = {col: df[col].astype(str).tolist() for col in category_columns}
 
+        # Ensure train_data is initialized in session state
+        if "train_data" not in st.session_state or st.session_state["train_data"] is None:
+            st.session_state["train_data"] = Data()
+
         # Identify target columns (those containing "target" in their name, case insensitive)
         target_columns = st.session_state["train_data"].target_columns
 
