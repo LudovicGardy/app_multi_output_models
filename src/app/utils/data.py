@@ -11,6 +11,7 @@ class Data:
     Y: np.ndarray = field(default_factory=lambda: np.array([]))
     categories: Dict[str, List[str]] = field(default_factory=dict)
     category_columns: List[str] = field(default_factory=list)
+    all_columns: List[str] = field(default_factory=list)
 
     @staticmethod
     def load_from_file(file):
@@ -25,6 +26,9 @@ class Data:
         """
         # Load the CSV file
         df = pd.read_csv(file, sep=",")
+
+        # Identify all columns
+        all_columns = df.columns.tolist()
 
         # Identify categorical columns
         category_columns = df.select_dtypes(include=["object", "category"]).columns.tolist()
@@ -42,4 +46,4 @@ class Data:
         X = df[feature_columns].values
         Y = df[target_columns].values
 
-        return Data(X, Y, categories, category_columns=category_columns)
+        return Data(X, Y, categories, category_columns, all_columns)

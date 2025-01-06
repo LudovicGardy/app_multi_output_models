@@ -68,12 +68,17 @@ if __name__ == "__main__":
 
         # Select clustering column
         if st.session_state["data_loaded"]:
-            if st.session_state["train_data"].category_columns:
-                categorical_columns = st.session_state["train_data"].category_columns
-                clustering_column = st.selectbox("Select clustering column:", categorical_columns)
-                st.session_state["clustering_column"] = clustering_column
+            column_selection_option = st.radio(
+                "Select columns from:",
+                ("Categorical columns only", "All columns")
+            )
+            if column_selection_option == "Categorical columns only":
+                available_columns = st.session_state["train_data"].category_columns
             else:
-                st.warning("No categorical columns found in the training data")
+                available_columns = st.session_state["train_data"].all_columns
+
+            clustering_column = st.selectbox("Select clustering column:", available_columns)
+            st.session_state["clustering_column"] = clustering_column
             if data_option == "Use default data":
                 st.sidebar.info("Default data loaded successfully")
             else:
