@@ -12,6 +12,8 @@ class Data:
     categories: Dict[str, List[str]] = field(default_factory=dict)
     category_columns: List[str] = field(default_factory=list)
     all_columns: List[str] = field(default_factory=list)
+    feature_columns: List[str] = field(default_factory=list)
+    target_columns: List[str] = field(default_factory=list)
 
     @staticmethod
     def load_from_file(file):
@@ -46,4 +48,7 @@ class Data:
         X = df[feature_columns].values
         Y = df[target_columns].values
 
-        return Data(X, Y, categories, category_columns, all_columns)
+        return Data(
+            X, Y, categories, category_columns, all_columns,
+            feature_columns, target_columns
+        )

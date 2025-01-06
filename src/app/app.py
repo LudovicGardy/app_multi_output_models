@@ -131,10 +131,11 @@ class App:
         num_parameters = data.shape[1]
         
         # Generate column names based on the actual number of features
-        data = pd.DataFrame(data, columns=[f"{parameters}_{i+1}" for i in range(num_parameters)])
-        data["Category"] = category
+        df = pd.DataFrame(data)
+        # Use a non-conflicting name
+        df["__pairplot_category__"] = category
 
-        sns.pairplot(data, hue="Category", palette="Set2")
+        sns.pairplot(df, hue="__pairplot_category__", palette="Set2")
         st.pyplot(plt)
 
     @staticmethod
@@ -151,14 +152,14 @@ class App:
         cluster_df = pd.DataFrame({
             "PCA1": X_pca[:, 0],
             "PCA2": X_pca[:, 1],
-            "Category": category
+            "__cluster_category__": category
         })
 
         fig = px.scatter(
             cluster_df,
             x="PCA1",
             y="PCA2",
-            color="Category",
+            color="__cluster_category__",
             title="PCA Visualization of Data by Category",
             labels={"PCA1": "Principal Component 1", "PCA2": "Principal Component 2"},
         )
@@ -175,7 +176,7 @@ class App:
         means = Y_train.mean(axis=0)
         stds = Y_train.std(axis=0)
         targets_summary = pd.DataFrame({
-            "Target": [f"Target_{i+1}" for i in range(Y_train.shape[1])],
+            "Target": range(Y_train.shape[1]),
             "Mean": means,
             "Standard Deviation": stds
         })
@@ -204,27 +205,19 @@ class App:
             categories (dict): Dictionnaire des colonnes catégorielles et leurs valeurs.
             table_name (str): Nom de la table pour l'affichage (optionnel).
         """
-        # Extraire les noms des colonnes des features et des targets
-        feature_names = [f"Feature_{i+1}" for i in range(X_train.shape[1])]
-        target_names = [f"Target_{i+1}" for i in range(Y_train.shape[1])]
-
-        # Créer un DataFrame pour les features
-        feature_df = pd.DataFrame(X_train, columns=feature_names)
-
-        # Ajouter les colonnes catégorielles
+        # Retrieve original column names
+        app_data = st.session_state["train_data"]  # or pass Data object as a parameter
+        feature_df = pd.DataFrame(X_train, columns=app_data.feature_columns)
+        # Add category columns (if they aren't already present)
         for category_col, category_values in categories.items():
-            feature_df[category_col] = category_values
+            if category_col not in feature_df.columns:
+                feature_df[category_col] = category_values
 
-        # Créer un DataFrame pour les targets
-        target_df = pd.DataFrame(Y_train, columns=target_names)
-
-        # Combiner features, catégories et targets
+        target_df = pd.DataFrame(Y_train, columns=app_data.target_columns)
         combined_df = pd.concat([feature_df, target_df], axis=1)
 
-        # Afficher dans Streamlit
         st.write(f"### {table_name} Data Table")
         st.dataframe(combined_df)
-
         return combined_df
 
     @staticmethod
@@ -273,7 +266,7 @@ class App:
         if st.button("Predict targets"):
             predictions = predict_targets(model, encoder, data)
             st.write("### Prediction Results")
-            predictions_df = pd.DataFrame(predictions, columns=[f"Target_{i+1}" for i in range(predictions.shape[1])])
+            predictions_df = pd.DataFrame(predictions, columns=data.target_columns)
             st.dataframe(predictions_df, width=1000)
             return predictions_df
         else:

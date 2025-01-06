@@ -20,7 +20,7 @@ class CategoryEncoder:
             X (ndarray): Input feature matrix.
             categories (Dict[str, list]): Dictionary with multiple category columns.
         """
-        df = pd.DataFrame(X, columns=[f"Feature_{i+1}" for i in range(X.shape[1])])
+        df = pd.DataFrame(X)  # Removed artificially generated column names
 
         # Vérifier la cohérence des longueurs
         for key, values in categories.items():
@@ -49,7 +49,7 @@ class CategoryEncoder:
         Returns:
             ndarray: Transformed feature matrix with encoded categorical variables.
         """
-        df = pd.DataFrame(X, columns=[f"Feature_{i+1}" for i in range(X.shape[1])])
+        df = pd.DataFrame(X)  # Removed artificially generated column names
 
         # Vérifier la cohérence des longueurs
         for key, values in categories.items():
