@@ -50,6 +50,9 @@ class App:
 
             with st.expander("Show Clusters"):
                 clustering_category = st.session_state["clustering_column"]
+                if clustering_category not in self.train_data.categories:
+                    self.train_data.categories[clustering_category] = self.train_data.X[:, self.train_data.all_columns.index(clustering_category)].tolist()
+                    st.warning(f"Clustering column '{clustering_category}' added to categories.")
                 self.display_clusters(self.train_data.X, self.train_data.categories[clustering_category])
 
             with st.expander("Show Pairplots"):
@@ -213,7 +216,9 @@ class App:
             if category_col not in feature_df.columns:
                 feature_df[category_col] = category_values
 
-        target_df = pd.DataFrame(Y_train, columns=app_data.target_columns)
+        # Rename target columns to avoid duplicates
+        target_columns = st.session_state["train_data"].target_columns
+        target_df = pd.DataFrame(Y_train, columns=target_columns)
         combined_df = pd.concat([feature_df, target_df], axis=1)
 
         st.write(f"### {table_name} Data Table")

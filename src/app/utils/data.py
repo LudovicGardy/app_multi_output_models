@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from typing import List, Dict
+import streamlit as st
 
 from dataclasses import dataclass, field
 
@@ -39,7 +40,7 @@ class Data:
         categories = {col: df[col].astype(str).tolist() for col in category_columns}
 
         # Identify target columns (those containing "target" in their name, case insensitive)
-        target_columns = [col for col in df.columns if 'target' in col.lower()]
+        target_columns = st.session_state["train_data"].target_columns
 
         # Identify feature columns
         feature_columns = [col for col in df.columns if col not in target_columns + category_columns]

@@ -79,6 +79,16 @@ if __name__ == "__main__":
 
             clustering_column = st.selectbox("Select clustering column:", available_columns)
             st.session_state["clustering_column"] = clustering_column
+
+            # Ensure the selected clustering column exists in categories
+            if clustering_column not in st.session_state["train_data"].categories:
+                st.session_state["train_data"].categories[clustering_column] = st.session_state["train_data"].X[:, available_columns.index(clustering_column)].tolist()
+                st.warning(f"Selected clustering column '{clustering_column}' added to categories.")
+
+            # Allow user to select target columns from all existing columns
+            target_columns = st.multiselect("Select target columns:", st.session_state["train_data"].all_columns)
+            st.session_state["train_data"].target_columns = target_columns
+
             if data_option == "Use default data":
                 st.sidebar.info("Default data loaded successfully")
             else:
