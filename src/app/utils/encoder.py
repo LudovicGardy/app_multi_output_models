@@ -1,88 +1,68 @@
-import numpy as np
 import pandas as pd
-
-from sklearn.preprocessing import OneHotEncoder
-from typing import Dict
-
-from src.app.utils.data import Data
-
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 class CategoryEncoder:
-    def __init__(self):
-        self.encoder = None
-        self.columns = None
-
-    def fit(self, X: np.ndarray, categories: Dict[str, list]):
+    def __init__(self, encoding_type="label"):
         """
-        Fit the encoder on training data.
-
+        Initialiser l'encodeur.
+        
         Args:
-            X (ndarray): Input feature matrix.
-            categories (Dict[str, list]): Dictionary with multiple category columns.
+        - encoding_type (str): "label" pour Label Encoding ou "onehot" pour One-Hot Encoding.
         """
-        df = pd.DataFrame(X)  # Removed artificially generated column names
+        if encoding_type not in ["label", "onehot"]:
+            raise ValueError("encoding_type must be 'label' or 'onehot'")
+        self.encoding_type = encoding_type
+        self.encoders = {}  # Dictionnaire pour stocker les encodeurs par colonne
 
-        # Vérifier la cohérence des longueurs
-        for key, values in categories.items():
-            if len(values) != len(X):
-                raise ValueError(f"Length of category '{key}' does not match the number of rows in X.")
-
-        # Ajouter les colonnes catégorielles
-        for key, values in categories.items():
-            df[key] = values
-
-        # Stocker les noms des colonnes catégorielles
-        self.categorical_columns = list(categories.keys())
-
-        # Fit the OneHotEncoder
-        self.encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
-        self.encoder.fit(df[self.categorical_columns])
-
-    def transform(self, X: np.ndarray, categories: Dict[str, list]):
+    def fit_transform(self, df, categorical_columns):
         """
-        Transform data based on the fitted encoder.
-
+        Encoder les colonnes catégorielles spécifiées.
+        
         Args:
-            X (ndarray): Input feature matrix.
-            categories (Dict[str, list]): Dictionary of categorical values.
-
+        - df (pd.DataFrame): Le DataFrame contenant les données.
+        - categorical_columns (list): Liste des noms des colonnes catégorielles à encoder.
+        
         Returns:
-            ndarray: Transformed feature matrix with encoded categorical variables.
+        - pd.DataFrame: DataFrame avec les colonnes encodées.
         """
-        df = pd.DataFrame(X)  # Removed artificially generated column names
+        df_encoded = df.copy()  # Copie du DataFrame original
+        for col in categorical_columns:
+            if self.encoding_type == "label":
+                le = LabelEncoder()
+                df_encoded[col] = le.fit_transform(df_encoded[col])
+                self.encoders[col] = le  # Stocker le LabelEncoder pour une éventuelle utilisation ultérieure
+            elif self.encoding_type == "onehot":
+                ohe = OneHotEncoder(sparse_output=False, handle_unknown="ignore")
+                encoded_array = ohe.fit_transform(df_encoded[[col]])
+                encoded_df = pd.DataFrame(
+                    encoded_array, 
+                    columns=[f"{col}_{cat}" for cat in ohe.categories_[0]],
+                    index=df_encoded.index
+                )
+                df_encoded = pd.concat([df_encoded.drop(columns=[col]), encoded_df], axis=1)
+                self.encoders[col] = ohe  # Stocker le OneHotEncoder
+        return df_encoded
 
-        # Vérifier la cohérence des longueurs
-        for key, values in categories.items():
-            if len(values) != len(X):
-                raise ValueError(f"Length of category '{key}' does not match the number of rows in X.")
-
-        # Ajouter les colonnes catégorielles
-        for key, values in categories.items():
-            df[key] = values
-
-        # Vérifier que les colonnes correspondent à celles utilisées lors du fit
-        if set(self.categorical_columns) != set(categories.keys()):
-            raise ValueError("Categories provided in transform do not match those used in fit.")
-
-        # Transformer les colonnes catégorielles
-        encoded = self.encoder.transform(df[self.categorical_columns])
-        encoded_columns = self.encoder.get_feature_names_out(self.categorical_columns)
-
-        # Créer un DataFrame concaténé
-        df_encoded = pd.concat([df, pd.DataFrame(encoded, columns=encoded_columns, index=df.index)], axis=1)
-
-        # Supprimer les colonnes catégorielles originales
-        return df_encoded.drop(columns=self.categorical_columns).values
-
-def encode_data(data: Data, encoder: CategoryEncoder) -> np.ndarray:
-    """
-    Encodes the input data using the provided encoder.
-
-    Args:
-        data (Data): Data object containing features and categories.
-        encoder (CategoryEncoder): Fitted CategoryEncoder.
-
-    Returns:
-        np.ndarray: Encoded feature matrix.
-    """
-    return encoder.transform(data.X, data.categories)
+    def transform(self, df):
+        """
+        Appliquer les encodeurs entraînés sur de nouvelles données.
+        
+        Args:
+        - df (pd.DataFrame): Le DataFrame à transformer.
+        
+        Returns:
+        - pd.DataFrame: DataFrame avec les colonnes encodées.
+        """
+        df_encoded = df.copy()  # Copie du DataFrame original
+        for col, encoder in self.encoders.items():
+            if isinstance(encoder, LabelEncoder):
+                df_encoded[col] = encoder.transform(df_encoded[col])
+            elif isinstance(encoder, OneHotEncoder):
+                encoded_array = encoder.transform(df_encoded[[col]])
+                encoded_df = pd.DataFrame(
+                    encoded_array, 
+                    columns=[f"{col}_{cat}" for cat in encoder.categories_[0]],
+                    index=df_encoded.index
+                )
+                df_encoded = pd.concat([df_encoded.drop(columns=[col]), encoded_df], axis=1)
+        return df_encoded

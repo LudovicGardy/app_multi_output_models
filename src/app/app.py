@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 from typing import Optional
 
 from sklearn.metrics import mean_squared_error
+from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 
 from src.app.utils.data import Data
 from src.app.utils.model import train_model, predict_targets
-from src.app.utils.encoder import CategoryEncoder, encode_data
 
 
 class App:
@@ -41,56 +41,114 @@ class App:
         with tab1:
             with st.expander("Show Training Data Details"):
                 st.write("### Training Data")
-                st.write("Number of features:", self.train_data.X.shape[1])
-                st.write("Number of targets:", self.train_data.Y.shape[1])
-                st.write("Number of samples:", self.train_data.X.shape[0])
+                st.write("Number of features:", self.train_data.features_df.shape[1])
+                st.write("Number of targets:", self.train_data.target_df.shape[1])
+                st.write("Number of samples:", self.train_data.features_df.shape[0])
 
             with st.expander("Show Training Data Table"):
-                train_df = self.display_data_table(self.train_data.X, self.train_data.Y, self.train_data.categories, "Training")
+                st.dataframe(st.session_state["train_data"].df)
+
+            with st.expander("Show Encoded Data Table"):
+                st.dataframe(st.session_state["train_data"].df_encoded)
 
             with st.expander("Show Clusters"):
-                clustering_category = st.session_state["clustering_column"]
-                if clustering_category not in self.train_data.categories:
-                    self.train_data.categories[clustering_category] = self.train_data.X[:, self.train_data.all_columns.index(clustering_category)].tolist()
-                    st.warning(f"Clustering column '{clustering_category}' added to categories.")
-                self.display_clusters(self.train_data.X, self.train_data.categories[clustering_category])
+                self.display_clusters()
 
             with st.expander("Show Pairplots"):
                 st.write("### Features")
-                self.display_pairplots(self.train_data.X, self.train_data.categories[clustering_category], "Feature")
+                self.display_pairplots(
+                    st.session_state["train_data"].df_encoded[st.session_state["feature_columns"]], 
+                    st.session_state["train_data"].df_encoded[st.session_state["clustering_column"]], 
+                    "Feature")
                 st.write("### Targets")
-                self.display_pairplots(self.train_data.Y, self.train_data.categories[clustering_category], "Target")
+                self.display_pairplots(
+                    st.session_state["train_data"].df_encoded[st.session_state["target_columns"]], 
+                    st.session_state["train_data"].df_encoded[st.session_state["clustering_column"]], 
+                    "Targets")
 
             with st.expander("Show Targets Summary"):
-                self.display_target_summary(self.train_data.Y)
+                self.display_target_summary(st.session_state["train_data"].df_encoded[st.session_state["target_columns"]])
 
         with tab2:
             st.write("## Train model and get results")
             
-            # Fit encoder and encode data
-            encoder = CategoryEncoder()
-            encoder.fit(self.train_data.X, self.train_data.categories)
-            X_encoded = encode_data(self.train_data, encoder)
-            
             # Train model
-            model = train_model(X_encoded, self.train_data.Y)
-            self.display_training_performance(model, encoder, self.train_data)
+            model = train_model(
+                st.session_state["train_data"].df_encoded[st.session_state["feature_columns"]].values, 
+                st.session_state["train_data"].df_encoded[st.session_state["target_columns"]].values)
+            self.display_training_performance(model, self.train_data)
 
         with tab3:
             st.write("# Predictions on new data")
             with st.expander("Show Test Data Details"):
                 st.write("### Test Data")
-                st.write("Number of features:", self.test_data.X.shape[1])
-                st.write("Number of targets:", self.test_data.Y.shape[1])
-                st.write("Number of samples:", self.test_data.X.shape[0])
+                st.write("Number of features:", self.test_data.features_df.shape[1])
+                st.write("Number of targets:", self.test_data.target_df.shape[1])
+                st.write("Number of samples:", self.test_data.features_df.shape[0])
 
             with st.expander("Show Test Data Table"):
-                test_df = self.display_data_table(self.test_data.X, self.test_data.Y, self.test_data.categories, "New")
-            predictions_df = self.handle_predictions(model, encoder, self.test_data)
+                st.dataframe(st.session_state["test_data"].df)
+            predictions_df = self.handle_predictions(
+                model, 
+                st.session_state["test_data"].df_encoded[st.session_state["feature_columns"]].values)
 
-            if predictions_df is not None:
-                st.write("### Differences between real and predicted values")
-                self.create_difference_df(test_df, predictions_df)
+            # if predictions_df is not None:
+            #     st.write("### Differences between real and predicted values")
+            #     self.create_difference_df(test_df, predictions_df)
+
+
+    @staticmethod
+    def display_clusters():
+        """
+        Displays the PCA visualization of clusters using Plotly.
+
+        Args:
+            X_train (ndarray): Training data.
+            category (list): List of categorical labels.
+        """
+        mycat_col = st.session_state["clustering_column"]
+        df = st.session_state["train_data"].features_df
+
+        # 1) SEPARE LES COLONNES NUMÉRIQUES ET CATÉGORIELLES
+        # -----------------------------------------------------------------
+        X = df.drop(columns=[mycat_col])
+        y = df[mycat_col]
+
+        # 2) CLUSTERING AVEC K-MEANS
+        # -----------------------------------------------------------------
+        n_clusters = len(y.unique())
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+
+        # Entraînement sur X (les 10 colonnes numériques)
+        clusters = kmeans.fit_predict(X)
+
+        # Ajout des clusters au DataFrame
+        df["cluster"] = clusters
+
+        # 3) RÉDUCTION DE DIMENSION POUR LA VISUALISATION (PCA)
+        # -----------------------------------------------------------------
+        pca = PCA(n_components=2, random_state=42)
+        X_pca = pca.fit_transform(X)
+
+        df["pca1"] = X_pca[:, 0]
+        df["pca2"] = X_pca[:, 1]
+
+        # 4) VISUALISATION AVEC PLOTLY
+        # -----------------------------------------------------------------
+        fig = px.scatter(
+            df,
+            x="pca1",
+            y="pca2",
+            color=mycat_col,       # Coloration par la colonne catégorielle
+            symbol="cluster",      # On peut distinguer les clusters via des symboles
+            hover_data=["cluster"] # Afficher le cluster au survol
+        )
+
+        fig.update_layout(title="Visualisation PCA - K-Means")
+
+        # 5) AFFICHAGE DANS STREAMLIT
+        # -----------------------------------------------------------------
+        st.plotly_chart(fig, use_container_width=True)
 
     def create_difference_df(self, test_df, predictions_df):
         """
@@ -142,33 +200,6 @@ class App:
         st.pyplot(plt)
 
     @staticmethod
-    def display_clusters(X_train, category):
-        """
-        Displays the PCA visualization of clusters using Plotly.
-
-        Args:
-            X_train (ndarray): Training data.
-            category (list): List of categorical labels.
-        """
-        pca = PCA(n_components=2)
-        X_pca = pca.fit_transform(X_train[:, :-3].astype(float))  # Exclude encoded columns
-        cluster_df = pd.DataFrame({
-            "PCA1": X_pca[:, 0],
-            "PCA2": X_pca[:, 1],
-            "__cluster_category__": category
-        })
-
-        fig = px.scatter(
-            cluster_df,
-            x="PCA1",
-            y="PCA2",
-            color="__cluster_category__",
-            title="PCA Visualization of Data by Category",
-            labels={"PCA1": "Principal Component 1", "PCA2": "Principal Component 2"},
-        )
-        st.plotly_chart(fig)
-
-    @staticmethod
     def display_target_summary(Y_train):
         """
         Displays a summary of the target variables using Plotly.
@@ -198,69 +229,36 @@ class App:
         st.dataframe(targets_summary, width=1000)
 
     @staticmethod
-    def display_data_table(X_train, Y_train, categories, table_name="") -> pd.DataFrame:
-        """
-        Affiche une table combinée des features, des cibles et des catégories.
-
-        Args:
-            X_train (ndarray): Données d'entraînement (features).
-            Y_train (ndarray): Données cibles d'entraînement.
-            categories (dict): Dictionnaire des colonnes catégorielles et leurs valeurs.
-            table_name (str): Nom de la table pour l'affichage (optionnel).
-        """
-        # Retrieve original column names
-        app_data = st.session_state["train_data"]  # or pass Data object as a parameter
-        feature_df = pd.DataFrame(X_train, columns=app_data.feature_columns)
-        # Add category columns (if they aren't already present)
-        for category_col, category_values in categories.items():
-            if category_col not in feature_df.columns:
-                feature_df[category_col] = category_values
-
-        # Ensure the number of target columns matches the shape of Y_train
-        target_columns = st.session_state["train_data"].target_columns[:Y_train.shape[1]]
-        target_df = pd.DataFrame(Y_train, columns=target_columns)
-        combined_df = pd.concat([feature_df, target_df], axis=1)
-
-        st.write(f"### {table_name} Data Table")
-        st.dataframe(combined_df)
-        return combined_df
-
-    @staticmethod
-    def display_training_performance(model, encoder, data: Data):
+    def display_training_performance(model, data: Data):
         """
         Displays the training performance metrics.
 
         Args:
             model (RandomForestRegressor): Trained regression model.
-            encoder (CategoryEncoder): Fitted CategoryEncoder.
             data (Data): Training data object.
         """
-        # Transformation des données d'entrée avec l'encodeur
-        X_encoded = encode_data(data, encoder)
+        # Ensure the feature columns are correctly specified
+        feature_columns = st.session_state["feature_columns"]
 
-        # Vérification des dimensions
-        if X_encoded.shape[0] != data.Y.shape[0]:
-            raise ValueError("Le nombre de lignes dans X_train et Y_train ne correspond pas.")
+        # Predictions on the training set
+        Y_train_pred = model.predict(st.session_state["train_data"].df_encoded[feature_columns].values)
 
-        # Prédictions sur l'ensemble d'entraînement
-        Y_train_pred = model.predict(X_encoded)
+        # Calculate the mean squared error (MSE) for each target
+        mse_train = mean_squared_error(data.target_df.values, Y_train_pred, multioutput='raw_values')
 
-        # Calcul de l'erreur quadratique moyenne (MSE) par cible
-        mse_train = mean_squared_error(data.Y, Y_train_pred, multioutput='raw_values')
-
-        # Construction d'un DataFrame pour un affichage clair
+        # Create a DataFrame for clear display
         mse_df = pd.DataFrame(
             {"MSE": mse_train},
-            index=[f"Target_{i+1}" for i in range(data.Y.shape[1])]
+            index=[f"Target_{i+1}" for i in range(data.target_df.shape[1])]
         )
 
-        # Affichage dans Streamlit
+        # Display in Streamlit
         st.write("### Performance on training data")
         st.table(mse_df)
         st.write("MSE mean:", mse_train.mean())
 
     @staticmethod
-    def handle_predictions(model, encoder, data: Data) -> Optional[pd.DataFrame]:
+    def handle_predictions(model, X_encoded: np.ndarray) -> Optional[pd.DataFrame]:
         """
         Handles predictions on new data.
 
@@ -269,9 +267,9 @@ class App:
             data (Data): New data object.
         """
         if st.button("Predict targets"):
-            predictions = predict_targets(model, encoder, data)
+            predictions = predict_targets(model, X_encoded)
             st.write("### Prediction Results")
-            predictions_df = pd.DataFrame(predictions, columns=data.target_columns)
+            predictions_df = pd.DataFrame(predictions)
             st.dataframe(predictions_df, width=1000)
             return predictions_df
         else:

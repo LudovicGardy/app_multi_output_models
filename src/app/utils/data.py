@@ -5,19 +5,19 @@ import streamlit as st
 
 from dataclasses import dataclass, field
 
+from src.app.utils.encoder import CategoryEncoder
 
 @dataclass
 class Data:
+    all_columns: List[str] = field(default_factory=list)
+    df: pd.DataFrame = field(default_factory=pd.DataFrame)
+    df_encoded: pd.DataFrame = field(default_factory=pd.DataFrame)
     X: np.ndarray = field(default_factory=lambda: np.array([]))
     Y: np.ndarray = field(default_factory=lambda: np.array([]))
-    categories: Dict[str, List[str]] = field(default_factory=dict)
-    category_columns: List[str] = field(default_factory=list)
-    all_columns: List[str] = field(default_factory=list)
-    feature_columns: List[str] = field(default_factory=list)
-    target_columns: List[str] = field(default_factory=list)
+    X_labels: List[str] = field(default_factory=list)
+    Y_labels: List[str] = field(default_factory=list)
 
-    @staticmethod
-    def load_from_file(file):
+    def load_from_file(self, file):
         """
         Load data from a CSV file and automatically detect categorical columns.
         
@@ -28,32 +28,21 @@ class Data:
             Data: An instance of the Data class containing the data.
         """
         # Load the CSV file
-        df = pd.read_csv(file, sep=",")
+        self.df = pd.read_csv(file, sep=",")
 
         # Identify all columns
-        all_columns = df.columns.tolist()
+        self.all_columns = self.df.columns.tolist()
 
-        # Identify categorical columns
-        category_columns = df.select_dtypes(include=["object", "category"]).columns.tolist()
+    def get_feature_and_target_df(self, feature_columns, target_columns):
+        self.features_df = self.df_encoded[feature_columns]
+        self.target_df = self.df_encoded[target_columns]
 
-        # Convert categorical columns to a list of values for each category
-        categories = {col: df[col].astype(str).tolist() for col in category_columns}
-
-        # Ensure train_data is initialized in session state
-        if "train_data" not in st.session_state or st.session_state["train_data"] is None:
-            st.session_state["train_data"] = Data()
-
-        # Identify target columns (those containing "target" in their name, case insensitive)
-        target_columns = st.session_state["train_data"].target_columns
-
-        # Identify feature columns
-        feature_columns = [col for col in df.columns if col not in target_columns + category_columns]
-
-        # Extract feature and target values
-        X = df[feature_columns].values
-        Y = df[target_columns].values
-
-        return Data(
-            X, Y, categories, category_columns, all_columns,
-            feature_columns, target_columns
-        )
+    def encode_categorical_columns(self, category_columns):
+        """
+        Encode categorical columns using One-Hot Encoding.
+        
+        Args:
+            category_columns (list): List of categorical column names.
+        """
+        encoder = CategoryEncoder(encoding_type="label")
+        self.df_encoded = encoder.fit_transform(self.df, category_columns)

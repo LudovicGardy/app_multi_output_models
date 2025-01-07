@@ -27,8 +27,10 @@ if __name__ == "__main__":
 
     if home_button:
         st.session_state["page"] = "Home"
+        st.session_state["from_analyses"] = True
     elif analyses_button:
         st.session_state["page"] = "Analyses"
+        st.session_state["from_analyses"] = False
 
     page = st.session_state["page"]
 
@@ -44,12 +46,14 @@ if __name__ == "__main__":
         if data_option == "Upload manually":
             with st.container(border=True):
                 st.write("### Load data")
-                train_file = st.file_uploader("Upload **training** data file", type=["csv"])
-                test_file = st.file_uploader("Upload **test** data file", type=["csv"])
+                train_file_path = st.file_uploader("Upload **training** data file", type=["csv"])
+                test_file_path = st.file_uploader("Upload **test** data file", type=["csv"])
 
-            if train_file and test_file:
-                train_data = Data.load_from_file(train_file)
-                test_data = Data.load_from_file(test_file)
+            if train_file_path and test_file_path:
+                train_data = Data()
+                test_data = Data()
+                train_data.load_from_file(train_file_path)
+                test_data.load_from_file(test_file_path)
                 st.session_state["data_loaded"] = True
                 st.session_state["train_data"] = train_data
                 st.session_state["test_data"] = test_data
@@ -58,8 +62,10 @@ if __name__ == "__main__":
             train_file_path = os.path.join("data", "generated_data_train.csv")
             test_file_path = os.path.join("data", "generated_data_test.csv")
             if os.path.exists(train_file_path) and os.path.exists(test_file_path):
-                train_data = Data.load_from_file(train_file_path)
-                test_data = Data.load_from_file(test_file_path)
+                train_data = Data()
+                test_data = Data()
+                train_data.load_from_file(train_file_path)
+                test_data.load_from_file(test_file_path)
                 st.session_state["data_loaded"] = True
                 st.session_state["train_data"] = train_data
                 st.session_state["test_data"] = test_data
@@ -68,37 +74,43 @@ if __name__ == "__main__":
 
         # Select clustering column
         if st.session_state["data_loaded"]:
-            column_selection_option = st.radio(
-                "Select columns from:",
-                ("Categorical columns only", "All columns")
-            )
-            if column_selection_option == "Categorical columns only":
-                available_columns = st.session_state["train_data"].category_columns
-            else:
-                available_columns = st.session_state["train_data"].all_columns
+            available_columns = st.session_state["train_data"].all_columns
 
             clustering_column = st.selectbox("Select clustering column:", available_columns)
             st.session_state["clustering_column"] = clustering_column
 
-            # Ensure the selected clustering column exists in categories
-            if clustering_column not in st.session_state["train_data"].categories:
-                st.session_state["train_data"].categories[clustering_column] = st.session_state["train_data"].X[:, available_columns.index(clustering_column)].tolist()
-                st.warning(f"Selected clustering column '{clustering_column}' added to categories.")
-
             # Allow user to select target columns from all existing columns
-            target_columns = st.multiselect("Select target columns:", st.session_state["train_data"].all_columns)
-            st.session_state["train_data"].target_columns = target_columns
+            if st.session_state.get("from_analyses", False) and "target_columns" in st.session_state and st.session_state["target_columns"]:
+                target_columns = st.multiselect("Select target columns:", st.session_state["train_data"].all_columns, default=st.session_state["target_columns"])
+            else:
+                target_columns = st.multiselect("Select target columns:", st.session_state["train_data"].all_columns)
+
+            st.session_state["target_columns"] = target_columns
+
+            # Feature columns are all columns except the target columns
+            feature_columns = [col for col in available_columns if col not in target_columns]
+            st.session_state["feature_columns"] = feature_columns
+
+            # Display feature columns
+            st.write("### Feature columns:")
+            st.write(feature_columns)
 
             if data_option == "Use default data":
                 st.sidebar.info("Default data loaded successfully")
             else:
                 st.sidebar.info("Data loaded successfully")
+                
+            # Setup train and test data
+            st.session_state["train_data"].encode_categorical_columns([clustering_column])
+            st.session_state["test_data"].encode_categorical_columns([clustering_column])
+
+            st.session_state["train_data"].get_feature_and_target_df(feature_columns, target_columns)
+            st.session_state["test_data"].get_feature_and_target_df(feature_columns, target_columns)
         else:
             st.sidebar.warning("No data loaded")
 
     elif page == "Analyses":
         st.title("📊 Analyses")
-        # Run the application with training data
         if st.session_state["data_loaded"]:
             app = App(config, st.session_state["train_data"], st.session_state["test_data"])
             app.run()
