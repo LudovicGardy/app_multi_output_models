@@ -69,8 +69,6 @@ class App:
 
         with tab2:
             st.write("## Train model and get results")
-            
-            # Train model
             model = train_model(
                 st.session_state["train_data"].df_encoded[st.session_state["feature_columns"]].values, 
                 st.session_state["train_data"].df_encoded[st.session_state["target_columns"]].values)
