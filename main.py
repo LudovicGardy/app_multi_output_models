@@ -74,6 +74,12 @@ if __name__ == "__main__":
 
         # Select clustering column
         if st.session_state["data_loaded"]:
+
+            if data_option == "Use default data":
+                st.sidebar.info("Default data loaded successfully")
+            else:
+                st.sidebar.info("Data loaded successfully")
+
             available_columns = st.session_state["train_data"].all_columns
 
             clustering_column = st.selectbox("Select clustering column:", [""]+available_columns)
@@ -95,7 +101,7 @@ if __name__ == "__main__":
             if not target_columns:
                 st.sidebar.warning("No target columns selected")
             else:
-                st.sidebar.info(f"N Target selected: {len(target_columns)}")
+                st.sidebar.info(f"Amounts of targets selected: {len(target_columns)}")
 
             # Feature columns are all columns except the target columns
             feature_columns = [col for col in available_columns if col not in target_columns]
@@ -104,11 +110,6 @@ if __name__ == "__main__":
             # Display feature columns
             st.write("### Feature columns:")
             st.write(feature_columns)
-
-            if data_option == "Use default data":
-                st.sidebar.info("Default data loaded successfully")
-            else:
-                st.sidebar.info("Data loaded successfully")
                 
             # Setup train and test data
             st.session_state["train_data"].encode_categorical_columns([clustering_column])
