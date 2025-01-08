@@ -1,4 +1,4 @@
-# The Game Of Life
+# Multi Output Regression
 
 ## 📄 Overview
 🏡 Para 1  
