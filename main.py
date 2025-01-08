@@ -76,9 +76,9 @@ if __name__ == "__main__":
         if st.session_state["data_loaded"]:
 
             if data_option == "Use default data":
-                st.sidebar.info("Default data loaded successfully")
+                st.sidebar.success("Default data loaded successfully")
             else:
-                st.sidebar.info("Data loaded successfully")
+                st.sidebar.success("Data loaded successfully")
 
             available_columns = st.session_state["train_data"].all_columns
 
@@ -88,7 +88,7 @@ if __name__ == "__main__":
             if not clustering_column:
                 st.sidebar.warning("No clustering column selected")
             else:
-                st.sidebar.info(f"Clustering column selected: {clustering_column}")
+                st.sidebar.success(f"Clustering column selected: {clustering_column}")
 
             # Allow user to select target columns from all existing columns
             if st.session_state.get("from_analyses", False) and "target_columns" in st.session_state and st.session_state["target_columns"]:
@@ -101,7 +101,7 @@ if __name__ == "__main__":
             if not target_columns:
                 st.sidebar.warning("No target columns selected")
             else:
-                st.sidebar.info(f"Amounts of targets selected: {len(target_columns)}")
+                st.sidebar.success(f"Amounts of targets selected: {len(target_columns)}")
 
             # Feature columns are all columns except the target columns
             feature_columns = [col for col in available_columns if col not in target_columns]
