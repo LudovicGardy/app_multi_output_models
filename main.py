@@ -27,10 +27,8 @@ if __name__ == "__main__":
 
     if home_button:
         st.session_state["page"] = "Home"
-        st.session_state["from_analyses"] = True
     elif analyses_button:
         st.session_state["page"] = "Analyses"
-        st.session_state["from_analyses"] = False
 
     page = st.session_state["page"]
 
@@ -91,10 +89,7 @@ if __name__ == "__main__":
                 st.sidebar.success(f"Clustering column selected: {clustering_column}")
 
             # Allow user to select target columns from all existing columns
-            if st.session_state.get("from_analyses", False) and "target_columns" in st.session_state and st.session_state["target_columns"]:
-                target_columns = st.multiselect("Select target columns:", st.session_state["train_data"].all_columns, default=st.session_state["target_columns"])
-            else:
-                target_columns = st.multiselect("Select target columns:", st.session_state["train_data"].all_columns)
+            target_columns = st.multiselect("Select target columns:", st.session_state["train_data"].all_columns)
 
             st.session_state["target_columns"] = target_columns
 
