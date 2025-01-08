@@ -1,13 +1,10 @@
 # Multi Output Regression
 
 ## 📄 Overview
-🏡 Para 1  
-This application is a comprehensive multi-output analysis tool that allows you to load datasets, handle multiple target columns, and quickly visualize results.
+🏡 This application is a comprehensive multi-output analysis tool that allows you to load datasets, handle multiple target columns, and quickly visualize results.
 
-🤔 Para 2  
-It integrates seamlessly into a machine learning workflow by offering an interactive Streamlit interface, suitable for data science or data engineering teams looking to test different scenarios.
+🤔 It integrates seamlessly into a machine learning workflow by offering an interactive Streamlit interface, suitable for data science or data engineering teams looking to test different scenarios.
 
-Para 3  
 You can customize encodings, manipulate various datasets, and extend the application to more advanced regression methods as needed.
 
 🌐 Access the app and start your exploration now at [@Not implemented yet](https://wikipedia.com).
