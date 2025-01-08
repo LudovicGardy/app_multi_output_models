@@ -90,11 +90,12 @@ class App:
                 st.dataframe(st.session_state["test_data"].df)
             predictions_df = self.handle_predictions(
                 model, 
-                st.session_state["test_data"].df_encoded[st.session_state["feature_columns"]].values)
+                st.session_state["test_data"].df_encoded[st.session_state["feature_columns"]].values
+                )
 
-            # if predictions_df is not None:
-            #     st.write("### Differences between real and predicted values")
-            #     self.create_difference_df(test_df, predictions_df)
+            if predictions_df is not None:
+                st.write("### Differences between real and predicted values")
+                self.create_difference_df(self.test_data.target_df, predictions_df)
 
 
     @staticmethod
@@ -188,9 +189,6 @@ class App:
             X_train (ndarray): Training data.
             category (list): List of categorical labels.
         """
-        # Dynamically determine the number of features
-        num_parameters = data.shape[1]
-        
         # Generate column names based on the actual number of features
         df = pd.DataFrame(data)
         # Use a non-conflicting name
@@ -269,7 +267,9 @@ class App:
         if st.button("Predict targets"):
             predictions = predict_targets(model, X_encoded)
             st.write("### Prediction Results")
-            predictions_df = pd.DataFrame(predictions)
+            # Use the target column names from the training data
+            target_columns = st.session_state["target_columns"]
+            predictions_df = pd.DataFrame(predictions, columns=target_columns)
             st.dataframe(predictions_df, width=1000)
             return predictions_df
         else:

@@ -76,8 +76,13 @@ if __name__ == "__main__":
         if st.session_state["data_loaded"]:
             available_columns = st.session_state["train_data"].all_columns
 
-            clustering_column = st.selectbox("Select clustering column:", available_columns)
+            clustering_column = st.selectbox("Select clustering column:", [""]+available_columns)
             st.session_state["clustering_column"] = clustering_column
+
+            if not clustering_column:
+                st.sidebar.warning("No clustering column selected")
+            else:
+                st.sidebar.info(f"Clustering column selected: {clustering_column}")
 
             # Allow user to select target columns from all existing columns
             if st.session_state.get("from_analyses", False) and "target_columns" in st.session_state and st.session_state["target_columns"]:
@@ -86,6 +91,11 @@ if __name__ == "__main__":
                 target_columns = st.multiselect("Select target columns:", st.session_state["train_data"].all_columns)
 
             st.session_state["target_columns"] = target_columns
+
+            if not target_columns:
+                st.sidebar.warning("No target columns selected")
+            else:
+                st.sidebar.info(f"N Target selected: {len(target_columns)}")
 
             # Feature columns are all columns except the target columns
             feature_columns = [col for col in available_columns if col not in target_columns]
