@@ -32,8 +32,6 @@ class App:
         """
         Runs the Streamlit application.
         """
-        # Generate and display data (if data not loaded in streamit)
-        # if not st.session_state.get("data_loaded", False):
         st.session_state["data_loaded"] = True
 
         tab1, tab2, tab3 = st.tabs(["1️⃣ Training Data", "2️⃣ Model Training", "3️⃣ Predictions On New Data"])
@@ -58,13 +56,13 @@ class App:
                 st.write("### Features")
                 self.display_pairplots(
                     st.session_state["train_data"].df_encoded[st.session_state["feature_columns"]], 
-                    st.session_state["train_data"].df_encoded[st.session_state["clustering_column"]], 
-                    "Feature")
+                    st.session_state["train_data"].df_encoded[st.session_state["clustering_column"]]
+                    )
                 st.write("### Targets")
                 self.display_pairplots(
                     st.session_state["train_data"].df_encoded[st.session_state["target_columns"]], 
-                    st.session_state["train_data"].df_encoded[st.session_state["clustering_column"]], 
-                    "Targets")
+                    st.session_state["train_data"].df_encoded[st.session_state["clustering_column"]]
+                    )
 
             with st.expander("Show Targets Summary"):
                 self.display_target_summary(st.session_state["train_data"].df_encoded[st.session_state["target_columns"]])
@@ -102,10 +100,6 @@ class App:
     def display_clusters():
         """
         Displays the PCA visualization of clusters using Plotly.
-
-        Args:
-            X_train (ndarray): Training data.
-            category (list): List of categorical labels.
         """
         mycat_col = st.session_state["clustering_column"]
         df = st.session_state["train_data"].features_df
@@ -176,7 +170,7 @@ class App:
 
 
     @staticmethod
-    def display_pairplots(data: np.ndarray, category: list, parameters: str):
+    def display_pairplots(data: np.ndarray, category: list):
         """
         Displays pairplots of the training data.
 
@@ -257,7 +251,7 @@ class App:
 
         Args:
             model (RandomForestRegressor): Trained regression model.
-            data (Data): New data object.
+            X_encoded (np.ndarray): Encoded feature matrix.
         """
         if st.button("Predict targets"):
             predictions = predict_targets(model, X_encoded)

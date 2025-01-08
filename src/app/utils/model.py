@@ -13,7 +13,6 @@ def train_model(X_encoded: np.ndarray, Y: np.ndarray) -> RandomForestRegressor:
     Returns:
         RandomForestRegressor: A trained RandomForestRegressor.
     """
-    # Entraînement du modèle
     model = RandomForestRegressor(random_state=42)
     model.fit(X_encoded, Y)
     
@@ -25,7 +24,6 @@ def predict_targets(model: RandomForestRegressor, X_encoded: np.ndarray) -> np.n
 
     Args:
         model (RandomForestRegressor): Trained regression model.
-        encoder (CategoryEncoder): Fitted CategoryEncoder.
         data (Data): New data object.
 
     Returns:

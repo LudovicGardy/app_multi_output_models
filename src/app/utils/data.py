@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-from typing import List, Dict
-import streamlit as st
+from typing import List
 
 from dataclasses import dataclass, field
 
@@ -27,10 +26,7 @@ class Data:
         Returns:
             Data: An instance of the Data class containing the data.
         """
-        # Load the CSV file
         self.df = pd.read_csv(file, sep=",")
-
-        # Identify all columns
         self.all_columns = self.df.columns.tolist()
 
     def get_feature_and_target_df(self, feature_columns, target_columns):
