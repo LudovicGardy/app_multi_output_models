@@ -12,7 +12,7 @@ You can customize encodings, manipulate various datasets, and extend the applica
 
 🌐 Access the app and start your exploration now at [@Not implemented yet](https://wikipedia.com).
 
-![Image1](images/image1.png)
+<!-- ![Image1](images/image1.png) -->
 
 ## Prerequisites
 
