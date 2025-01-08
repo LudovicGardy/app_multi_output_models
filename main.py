@@ -20,6 +20,14 @@ if __name__ == "__main__":
         st.session_state["test_data"] = None
         st.session_state["page"] = "Home"
 
+    if "clustering_column" not in st.session_state:
+        clustering_column = ""
+        st.session_state["clustering_column"] = clustering_column
+        
+    if "target_columns" not in st.session_state:
+        target_columns = []
+        st.session_state["target_columns"] = target_columns
+
     # Create pages
     st.sidebar.title("Multi-Output Regression")
     home_button = st.sidebar.button("🏠 Home", key="home_button", use_container_width=True)
@@ -95,7 +103,9 @@ if __name__ == "__main__":
 
             if not target_columns:
                 st.sidebar.warning("No target columns selected")
-            else:
+            elif len(target_columns) < 2:
+                st.sidebar.info(f"Amounts of targets selected: {len(target_columns)}")
+            elif len(target_columns) >= 2:
                 st.sidebar.success(f"Amounts of targets selected: {len(target_columns)}")
 
             # Feature columns are all columns except the target columns
@@ -117,8 +127,12 @@ if __name__ == "__main__":
 
     elif page == "Analyses":
         st.title("📊 Analyses")
-        if st.session_state["data_loaded"]:
+        if not st.session_state["data_loaded"]:
+            st.error("Please upload the training and test data on the Home page, or select the default dataset.")
+        if not st.session_state["clustering_column"]:
+            st.error("No clustering column selected")
+        if len(st.session_state["target_columns"]) < 2:
+            st.error("No target columns selected. Select at least 2 targets.")
+        else:
             app = App(config, st.session_state["train_data"], st.session_state["test_data"])
             app.run()
-        else:
-            st.error("Please upload the training and test data on the Home page, or select the default dataset.")

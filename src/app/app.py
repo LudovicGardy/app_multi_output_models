@@ -110,45 +110,40 @@ class App:
         mycat_col = st.session_state["clustering_column"]
         df = st.session_state["train_data"].features_df
 
-        # 1) SEPARE LES COLONNES NUMÉRIQUES ET CATÉGORIELLES
-        # -----------------------------------------------------------------
+        # Split the DataFrame into numerical and categorical columns
         X = df.drop(columns=[mycat_col])
         y = df[mycat_col]
 
-        # 2) CLUSTERING AVEC K-MEANS
-        # -----------------------------------------------------------------
+        # Clustering with K-Means
         n_clusters = len(y.unique())
         kmeans = KMeans(n_clusters=n_clusters, random_state=42)
 
-        # Entraînement sur X (les 10 colonnes numériques)
+        # Traaining on X (the 10 numerical columns)
         clusters = kmeans.fit_predict(X)
 
-        # Ajout des clusters au DataFrame
+        # Add the cluster column to the DataFrame
         df["cluster"] = clusters
 
-        # 3) RÉDUCTION DE DIMENSION POUR LA VISUALISATION (PCA)
-        # -----------------------------------------------------------------
+        # Reduction of dimensionality for visualization (PCA)
         pca = PCA(n_components=2, random_state=42)
         X_pca = pca.fit_transform(X)
 
         df["pca1"] = X_pca[:, 0]
         df["pca2"] = X_pca[:, 1]
 
-        # 4) VISUALISATION AVEC PLOTLY
-        # -----------------------------------------------------------------
+        # Visualize the clusters
         fig = px.scatter(
             df,
             x="pca1",
             y="pca2",
-            color=mycat_col,       # Coloration par la colonne catégorielle
-            symbol="cluster",      # On peut distinguer les clusters via des symboles
-            hover_data=["cluster"] # Afficher le cluster au survol
+            color=mycat_col,       # Coloration of the points according to the categorical column
+            symbol="cluster",      # We can distinguish the clusters via symbols
+            hover_data=["cluster"] # Display the cluster number when hovering over a point
         )
 
         fig.update_layout(title="Visualisation PCA - K-Means")
 
-        # 5) AFFICHAGE DANS STREAMLIT
-        # -----------------------------------------------------------------
+        # Display the plot
         st.plotly_chart(fig, use_container_width=True)
 
     def create_difference_df(self, test_df, predictions_df):
