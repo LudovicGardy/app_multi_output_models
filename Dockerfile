@@ -1,16 +1,22 @@
-# Utiliser une image Python de base (3.8-slim-buster)
-FROM python:3.9-slim-buster
+# Python image
+FROM python:3.11-slim-buster
 
-# Définir le dossier de travail
+# Set the working directory
 WORKDIR /app
 
-# Copier le fichier requirements.txt et installer les dépendances
-COPY requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the pyproject.toml and poetry.lock files
+COPY pyproject.toml poetry.lock ./
 
-# Copier tout le reste du code source
+# Install Poetry
+RUN pip install --upgrade pip
+RUN pip install poetry
+
+# Install dependencies
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-root --no-interaction --no-ansi
+
+# Copy the rest of the source code
 COPY . .
 
-# Exécuter votre script Python
-CMD ["python", "main.py"]
+# Run Python script
+CMD ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
