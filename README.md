@@ -119,34 +119,40 @@ If you prefer to run the application in a containerized setup, use Docker.
 
 #### Steps
 
-1. **Set Up Docker Environment**
+1. **Prepare Docker environment**
+    - Ensure Docker is installed and running on your system.
 
-   - Make sure **Docker** is installed and running on your system.
+2. **Navigate to project directory**
+    - For multiple containers:
+        ```bash
+        cd [path-to-app-folder-containing-docker-compose.yml]
+        ```
+    - For a single container:
+        ```bash
+        cd [path-to-app-folder-containing-Dockerfile]
+        ```
 
-2. **Navigate to the Correct Directory**
+3. **Build the containers**
+    - For multiple containers:
+        ```bash
+        docker-compose up --build
+        ```
+    - For a single container:
+        ```bash
+        docker build -t my-app-title .
+        ```
 
-   - **For a multi-container setup**:
-     ```bash
-     cd [path-to-app-folder-with-docker-compose.yml]
-     ```
+4. **Run the containers**
+    - For multiple containers:
+        ```bash
+        docker run -p 8501:8501 my-app-title
+        ```
+    - The application will be accessible at `http://localhost:8501`.
 
-   - **For a single container**:
-     ```bash
-     cd [path-to-app-folder-with-Dockerfile]
-     ```
+5. **Other notes**
 
-3. **Build and Start the Containers**
-
-   - Run the following command to build and launch the app in Docker:
-     ```bash
-     docker-compose up --build
-     ```
-
-   - **Access the Application**:
-     - Open your browser and go to `http://localhost:8501`.
-
-   - **Troubleshooting**:
-     - If there’s an issue with `pymssql`, try adjusting its version in `requirements.txt` or temporarily removing it.
+    - ⚠️ If you encounter issues with `pymssql`, adjust its version in `requirements.txt` or remove it before building the Docker image.
+    - ⚠️ If you encounter issues with `pyspark`, you might need to uninstall and reinstall it. Additionally, ensure that Java is installed and properly configured on your system, as `pyspark` depends on Java. You can install Java by following the instructions on the [official Java website](https://www.java.com/en/download/help/download_options.html). Make sure to set the `JAVA_HOME` environment variable to point to your Java installation directory.
 
 ---
 
