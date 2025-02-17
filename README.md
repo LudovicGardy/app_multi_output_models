@@ -132,7 +132,7 @@ If you prefer to run the application in a containerized setup, use Docker.
         cd [path-to-app-folder-containing-Dockerfile]
         ```
 
-3. **Build the image (if does not already exit)**
+3. **Build the image (if does not already exist)**
     - For multiple containers:
         ```bash
         docker-compose up --build
