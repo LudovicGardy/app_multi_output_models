@@ -1,33 +1,35 @@
 import numpy as np
-
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.multioutput import MultiOutputRegressor
+from catboost import CatBoostRegressor
+from abc import ABC, abstractmethod
 
-def train_model(X_encoded: np.ndarray, Y: np.ndarray) -> RandomForestRegressor:
-    """
-    Trains a Random Forest regressor on the given encoded data.
+class BaseModel(ABC):
+    @abstractmethod
+    def train_model(self, X: np.ndarray, Y: np.ndarray):
+        pass
 
-    Args:
-        X_encoded (np.ndarray): Encoded feature matrix.
-        Y (np.ndarray): Target data.
+    @abstractmethod
+    def predict_targets(self, model, X: np.ndarray) -> np.ndarray:
+        pass
 
-    Returns:
-        RandomForestRegressor: A trained RandomForestRegressor.
-    """
-    model = RandomForestRegressor(random_state=42)
-    model.fit(X_encoded, Y)
-    
-    return model
 
-def predict_targets(model: RandomForestRegressor, X_encoded: np.ndarray) -> np.ndarray:
-    """
-    Predicts target values for new input data.
+class RandomForestModel(BaseModel):
+    def train_model(self, X_encoded: np.ndarray, Y: np.ndarray) -> RandomForestRegressor:
+        model = RandomForestRegressor(random_state=42)
+        model.fit(X_encoded, Y)
+        return model
 
-    Args:
-        model (RandomForestRegressor): Trained regression model.
-        data (Data): New data object.
+    def predict_targets(self, model: RandomForestRegressor, X_encoded: np.ndarray) -> np.ndarray:
+        return model.predict(X_encoded)
 
-    Returns:
-        np.ndarray: Predicted target values.
-    """
-    return model.predict(X_encoded)
 
+class CatBoostModel(BaseModel):
+    def train_model(self, X: np.ndarray, Y: np.ndarray, cat_features: list = []) -> MultiOutputRegressor:
+        base_model = CatBoostRegressor(random_state=42, verbose=0)
+        model = MultiOutputRegressor(base_model)
+        model.fit(X, Y, **{"cat_features": cat_features})
+        return model
+
+    def predict_targets(self, model: MultiOutputRegressor, X: np.ndarray) -> np.ndarray:
+        return model.predict(X)

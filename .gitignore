@@ -20,6 +20,9 @@ coverage.xml
 junit.xml
 test.html
 
+# Models
+catboost_info
+
 # Logs
 *.log
 

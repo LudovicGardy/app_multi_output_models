@@ -1,17 +1,17 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import plotly.express as px
-import matplotlib.pyplot as plt
 from typing import Optional
 
-from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import seaborn as sns
+import streamlit as st
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+from sklearn.metrics import mean_squared_error
 
 from src.app.utils.data import Data
-from src.app.utils.model import train_model, predict_targets
+from src.app.utils.model import RandomForestModel, CatBoostModel
 
 
 class App:
@@ -32,6 +32,11 @@ class App:
         """
         Runs the Streamlit application.
         """
+        if st.session_state["selected_model"] == "Random Forest":
+            model_class = RandomForestModel()
+        elif st.session_state["selected_model"] == "CatBoost":
+            model_class = CatBoostModel()
+
         st.session_state["data_loaded"] = True
 
         tab1, tab2, tab3 = st.tabs(["1️⃣ Training Data", "2️⃣ Model Training", "3️⃣ Predictions On New Data"])
@@ -55,23 +60,26 @@ class App:
             with st.expander("Show Pairplots"):
                 st.write("### Features")
                 self.display_pairplots(
-                    st.session_state["train_data"].df_encoded[st.session_state["feature_columns"]], 
-                    st.session_state["train_data"].df_encoded[st.session_state["clustering_column"]]
-                    )
+                    st.session_state["train_data"].df_encoded[st.session_state["feature_columns"]],
+                    st.session_state["train_data"].df_encoded[st.session_state["clustering_column"]],
+                )
                 st.write("### Targets")
                 self.display_pairplots(
-                    st.session_state["train_data"].df_encoded[st.session_state["target_columns"]], 
-                    st.session_state["train_data"].df_encoded[st.session_state["clustering_column"]]
-                    )
+                    st.session_state["train_data"].df_encoded[st.session_state["target_columns"]],
+                    st.session_state["train_data"].df_encoded[st.session_state["clustering_column"]],
+                )
 
             with st.expander("Show Targets Summary"):
-                self.display_target_summary(st.session_state["train_data"].df_encoded[st.session_state["target_columns"]])
+                self.display_target_summary(
+                    st.session_state["train_data"].df_encoded[st.session_state["target_columns"]]
+                )
 
         with tab2:
             st.write("## Train model and get results")
-            model = train_model(
-                st.session_state["train_data"].df_encoded[st.session_state["feature_columns"]].values, 
-                st.session_state["train_data"].df_encoded[st.session_state["target_columns"]].values)
+            model = model_class.train_model(
+                st.session_state["train_data"].df_encoded[st.session_state["feature_columns"]].values,
+                st.session_state["train_data"].df_encoded[st.session_state["target_columns"]].values,
+            )
             self.display_training_performance(model, self.train_data)
 
         with tab3:
@@ -85,14 +93,12 @@ class App:
             with st.expander("Show Test Data Table"):
                 st.dataframe(st.session_state["test_data"].df)
             predictions_df = self.handle_predictions(
-                model, 
-                st.session_state["test_data"].df_encoded[st.session_state["feature_columns"]].values
-                )
+                model_class, model, st.session_state["test_data"].df_encoded[st.session_state["feature_columns"]].values
+            )
 
             if predictions_df is not None:
                 st.write("### Differences between real and predicted values")
                 self.create_difference_df(self.test_data.target_df, predictions_df)
-
 
     @staticmethod
     def display_clusters():
@@ -128,9 +134,9 @@ class App:
             df,
             x="pca1",
             y="pca2",
-            color=mycat_col,       # Coloration of the points according to the categorical column
-            symbol="cluster",      # We can distinguish the clusters via symbols
-            hover_data=["cluster"] # Display the cluster number when hovering over a point
+            color=mycat_col,  # Coloration of the points according to the categorical column
+            symbol="cluster",  # We can distinguish the clusters via symbols
+            hover_data=["cluster"],  # Display the cluster number when hovering over a point
         )
 
         fig.update_layout(title="Visualisation PCA - K-Means")
@@ -166,7 +172,6 @@ class App:
 
         return difference_df
 
-
     @staticmethod
     def display_pairplots(data: np.ndarray, category: list):
         """
@@ -194,11 +199,7 @@ class App:
         """
         means = Y_train.mean(axis=0)
         stds = Y_train.std(axis=0)
-        targets_summary = pd.DataFrame({
-            "Target": range(Y_train.shape[1]),
-            "Mean": means,
-            "Standard Deviation": stds
-        })
+        targets_summary = pd.DataFrame({"Target": range(Y_train.shape[1]), "Mean": means, "Standard Deviation": stds})
 
         fig = px.bar(
             targets_summary,
@@ -229,13 +230,10 @@ class App:
         Y_train_pred = model.predict(st.session_state["train_data"].df_encoded[feature_columns].values)
 
         # Calculate the mean squared error (MSE) for each target
-        mse_train = mean_squared_error(data.target_df.values, Y_train_pred, multioutput='raw_values')
+        mse_train = mean_squared_error(data.target_df.values, Y_train_pred, multioutput="raw_values")
 
         # Create a DataFrame for clear display
-        mse_df = pd.DataFrame(
-            {"MSE": mse_train},
-            index=[f"Target_{i+1}" for i in range(data.target_df.shape[1])]
-        )
+        mse_df = pd.DataFrame({"MSE": mse_train}, index=[f"Target_{i + 1}" for i in range(data.target_df.shape[1])])
 
         # Display in Streamlit
         st.write("### Performance on training data")
@@ -243,7 +241,7 @@ class App:
         st.write("MSE mean:", mse_train.mean())
 
     @staticmethod
-    def handle_predictions(model, X_encoded: np.ndarray) -> Optional[pd.DataFrame]:
+    def handle_predictions(model_class, model, X_encoded: np.ndarray) -> Optional[pd.DataFrame]:
         """
         Handles predictions on new data.
 
@@ -252,7 +250,7 @@ class App:
             X_encoded (np.ndarray): Encoded feature matrix.
         """
         if st.button("Predict targets"):
-            predictions = predict_targets(model, X_encoded)
+            predictions = model_class.predict_targets(model, X_encoded)
             st.write("### Prediction Results")
             # Use the target column names from the training data
             target_columns = st.session_state["target_columns"]
