@@ -11,7 +11,7 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import mean_squared_error
 
 from src.app.utils.data import Data
-from src.app.utils.model import RandomForestModel, CatBoostModel
+from src.app.utils.model import RandomForestModel, CatBoostNativeModel, CatBoostMultiRegressorModel
 
 
 class App:
@@ -34,8 +34,10 @@ class App:
         """
         if st.session_state["selected_model"] == "Random Forest":
             model_class = RandomForestModel()
-        elif st.session_state["selected_model"] == "CatBoost":
-            model_class = CatBoostModel()
+        elif st.session_state["selected_model"] == "CatBoost Native":
+            model_class = CatBoostNativeModel()
+        elif st.session_state["selected_model"] == "CatBoost MultiRegressor":
+            model_class = CatBoostMultiRegressorModel()
 
         st.session_state["data_loaded"] = True
 

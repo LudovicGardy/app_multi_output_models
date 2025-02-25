@@ -107,7 +107,7 @@ if __name__ == "__main__":
         st.write("  - You must name the target columns with the word 'target'.")
         st.write("  - See the example data files for more information.")
 
-        st.session_state["selected_model"] = st.radio("Choose a model:", ("Random Forest", "CatBoost"))
+        st.session_state["selected_model"] = st.selectbox("Select a model:", ("Random Forest", "CatBoost Native", "CatBoost MultiRegressor"), 1)
         data_option = st.radio("Choose data loading option:", ("Upload manually", "Use default data"))
         handle_data_option(data_option)
 
