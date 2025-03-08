@@ -1,22 +1,26 @@
-# Python image
-FROM python:3.11-slim-buster
+# Utiliser une image Python compatible
+# Catboost need python 3.11 (not compatible with 3.13)
+FROM python:3.11-slim
 
-# Set the working directory
+# Définir le dossier de travail
 WORKDIR /app
 
-# Copy the pyproject.toml and poetry.lock files
+# Installer Poetry correctement (avec curl)
+RUN apt-get update && apt-get install -y curl && \
+    curl -sSL https://install.python-poetry.org | python3 - && \
+    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
+
+# Copier les fichiers de configuration de Poetry
 COPY pyproject.toml poetry.lock ./
 
-# Install Poetry
-RUN pip install --upgrade pip
-RUN pip install poetry
+# Installer les dépendances sans installer le projet lui-même
+RUN poetry install --no-interaction --no-ansi --no-root
 
-# Install dependencies
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-root --no-interaction --no-ansi
-
-# Copy the rest of the source code
+# Copier le reste du code de l'application
 COPY . .
 
-# Run Python script
-CMD ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Exposer le port de Streamlit
+EXPOSE 8501
+
+# Lancer l'application
+CMD ["poetry", "run", "streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
