@@ -88,4 +88,4 @@ You can run the application in two ways:
 ## 👤 Author
 
 - **LinkedIn**: [Ludovic Gardy](https://www.linkedin.com/in/ludovic-gardy/)
-- **Website**: [https://www.sotisanalytics.com](https://www.sotisanalytics.com)
+- **Website**: [https://www.sotisai.com](https://www.sotisai.com)
